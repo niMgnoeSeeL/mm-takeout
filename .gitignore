@@ -1,0 +1,13 @@
+# Exported data never belongs in the repo
+export/
+*.zip
+.env
+
+# Local Mattermost state
+mattermost-server/volumes/
+mattermost-server/import/
+
+# Junk
+__pycache__/
+*.pyc
+.DS_Store

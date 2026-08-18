@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mattermost Archive</title>
+<style>
+:root{
+  --bg:#ffffff; --bg2:#f7f8fa; --side:#1b1d29; --side2:#24273a; --sidetx:#b7bdd0;
+  --tx:#1a1c22; --tx2:#6b7280; --line:#e6e8ec; --acc:#2b6cb0; --hl:#fff6d6;
+  --code:#f2f3f5; --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+html[data-t=dark]{
+  --bg:#15171f; --bg2:#1b1d26; --side:#0f1117; --side2:#171923; --sidetx:#9aa1b8;
+  --tx:#e6e8ee; --tx2:#9096a4; --line:#2a2d38; --acc:#6ba3e0; --hl:#3d3411; --code:#22252f;
+}
+*{box-sizing:border-box}
+body{margin:0;font:14.5px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;
+     color:var(--tx);background:var(--bg);display:flex;height:100vh;overflow:hidden}
+#side{width:290px;flex:0 0 290px;background:var(--side);color:var(--sidetx);display:flex;flex-direction:column;overflow:hidden}
+#side h1{font-size:14px;margin:0;padding:14px 16px 4px;color:#fff;font-weight:600;letter-spacing:.2px}
+#side .sub{padding:0 16px 10px;font-size:11.5px;color:#7b829b}
+#cfilter{margin:0 12px 8px;padding:7px 10px;width:calc(100% - 24px);border-radius:6px;border:1px solid #333648;
+        background:var(--side2);color:#e8eaf2;font-size:13px;outline:none}
+#cfilter:focus{border-color:var(--acc)}
+#chans{overflow-y:auto;flex:1;padding-bottom:20px}
+.grp{padding:12px 16px 4px;font-size:10.5px;text-transform:uppercase;letter-spacing:.9px;color:#6c7391;font-weight:700}
+.ch{padding:5px 16px;cursor:pointer;display:flex;align-items:baseline;gap:7px;font-size:13.5px;color:#c3c9dc}
+.ch:hover{background:var(--side2)}
+.ch.on{background:var(--acc);color:#fff}
+.ch .ic{opacity:.65;font-size:12px;width:12px;flex:0 0 12px}
+.ch .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ch .ct{font-size:10.5px;opacity:.55;font-variant-numeric:tabular-nums}
+#main{flex:1;display:flex;flex-direction:column;min-width:0;background:var(--bg)}
+#top{padding:12px 22px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:14px;background:var(--bg)}
+#top h2{margin:0;font-size:16px;font-weight:650}
+#top .meta{font-size:12px;color:var(--tx2)}
+#q{margin-left:auto;padding:7px 11px;width:290px;border:1px solid var(--line);border-radius:7px;
+   background:var(--bg2);color:var(--tx);font-size:13px;outline:none}
+#q:focus{border-color:var(--acc)}
+#tt{background:none;border:1px solid var(--line);border-radius:7px;color:var(--tx2);cursor:pointer;padding:6px 10px;font-size:13px}
+#feed{flex:1;overflow-y:auto;padding:8px 22px 60px}
+.day{display:flex;align-items:center;gap:12px;margin:22px 0 10px;color:var(--tx2);font-size:11.5px;font-weight:600}
+.day:before,.day:after{content:"";flex:1;height:1px;background:var(--line)}
+.p{display:flex;gap:11px;padding:3px 6px;border-radius:6px;margin:0 -6px}
+.p:hover{background:var(--bg2)}
+.p.hit{background:var(--hl)}
+.av{width:34px;height:34px;flex:0 0 34px;border-radius:7px;display:flex;align-items:center;justify-content:center;
+    color:#fff;font-weight:600;font-size:13px;margin-top:2px}
+.av.sp{background:none}
+.bd{flex:1;min-width:0}
+.hdr{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap}
+.who{font-weight:650}
+.ts{font-size:11px;color:var(--tx2);font-variant-numeric:tabular-nums}
+.tag{font-size:10px;background:var(--code);color:var(--tx2);padding:1px 5px;border-radius:4px}
+.msg{white-space:pre-wrap;word-wrap:break-word;overflow-wrap:anywhere}
+.msg code{background:var(--code);padding:1.5px 5px;border-radius:4px;font-family:var(--mono);font-size:12.5px}
+.msg pre{background:var(--code);padding:11px 13px;border-radius:8px;overflow-x:auto;margin:7px 0;white-space:pre}
+.msg pre code{background:none;padding:0;font-size:12.5px;line-height:1.5}
+.msg blockquote{border-left:3px solid var(--line);margin:5px 0;padding:1px 0 1px 12px;color:var(--tx2)}
+.msg a{color:var(--acc);text-decoration:none}
+.msg a:hover{text-decoration:underline}
+.msg .mn{color:var(--acc);background:rgba(43,108,176,.1);border-radius:3px;padding:0 2px}
+.sys{color:var(--tx2);font-style:italic;font-size:13px}
+.rx{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px}
+.rx span{background:var(--code);border:1px solid var(--line);border-radius:11px;padding:1px 8px;font-size:11.5px;color:var(--tx2)}
+.att{margin-top:7px;display:flex;flex-direction:column;gap:6px}
+.att img{max-width:min(480px,100%);max-height:340px;border-radius:8px;border:1px solid var(--line);display:block;cursor:zoom-in}
+.att a.file{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);border-radius:7px;
+            padding:7px 11px;color:var(--tx);text-decoration:none;font-size:13px;background:var(--bg2);max-width:440px}
+.att a.file:hover{border-color:var(--acc)}
+.att .sz{color:var(--tx2);font-size:11.5px;margin-left:auto;white-space:nowrap}
+.sa{border-left:3px solid var(--acc);padding:3px 0 3px 11px;margin-top:6px}
+.sa .t{font-weight:650}
+.missing{display:inline-flex;flex-direction:column;gap:2px;border:1px dashed var(--line);border-radius:8px;
+         padding:9px 13px;background:var(--bg2);font-size:12.5px;color:var(--tx2);max-width:440px}
+.missing b{font-weight:600;color:var(--tx);font-size:13px}
+.og{display:block;border:1px solid var(--line);border-left:3px solid var(--acc);border-radius:8px;
+    padding:9px 13px;margin-top:7px;max-width:520px;text-decoration:none;color:var(--tx);background:var(--bg2)}
+.og:hover{border-color:var(--acc)}
+.og .site{font-size:11px;color:var(--tx2);margin-bottom:2px}
+.og .t{font-weight:650;color:var(--acc);margin-bottom:3px}
+.og .d{font-size:13px;color:var(--tx2)}
+.og .ogimg{max-width:100%;max-height:200px;border-radius:6px;margin-top:8px;display:block}
+.pl{border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin-top:7px;max-width:520px;background:var(--bg2)}
+.pl .site{font-size:11px;color:var(--tx2);margin-bottom:3px;font-weight:600}
+.thr{margin-left:45px;border-left:2px solid var(--line);padding-left:13px;margin-top:2px}
+.more{display:block;margin:14px auto;padding:8px 18px;border:1px solid var(--line);background:var(--bg2);
+      color:var(--tx);border-radius:8px;cursor:pointer;font-size:13px}
+.res{padding:11px 6px;border-bottom:1px solid var(--line);cursor:pointer}
+.res:hover{background:var(--bg2)}
+.res .rc{font-size:11.5px;color:var(--acc);font-weight:600}
+.res mark{background:var(--hl);color:inherit;border-radius:2px}
+#empty{color:var(--tx2);padding:60px 0;text-align:center}
+#lb{position:fixed;inset:0;background:rgba(0,0,0,.86);display:none;align-items:center;justify-content:center;z-index:99;cursor:zoom-out}
+#lb img{max-width:94vw;max-height:94vh}
+</style></head><body>
+<div id="side">
+  <h1 id="brand">Mattermost Archive</h1>
+  <div class="sub" id="sub"></div>
+  <input id="cfilter" placeholder="Filter channels...">
+  <div id="chans"></div>
+</div>
+<div id="main">
+  <div id="top"><h2 id="title">-</h2><span class="meta" id="cmeta"></span>
+    <input id="q" placeholder="Search all messages...  (press /)">
+    <button id="tt" title="Toggle theme">&#9686;</button></div>
+  <div id="feed"><div id="empty">Pick a channel on the left, or search.</div></div>
+</div>
+<div id="lb"><img></div>
+<script src="data.js"></script>
+<script>
+const D=window.MM, U=D.users;
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const uname=id=>(U[id]||[id.slice(0,8),''])[0], ureal=id=>(U[id]||['',''])[1];
+const PAL=['#4a6fa5','#8a5a83','#3f7d6e','#a35d4a','#5b5ea6','#7a6a3f','#4a7a92','#8a4a5e','#5f7a45','#6a4a8a'];
+const color=id=>{let h=0;for(const c of id)h=(h*31+c.charCodeAt(0))|0;return PAL[Math.abs(h)%PAL.length]};
+const fmtSize=b=>b>1048576?(b/1048576).toFixed(1)+' MB':b>1024?(b/1024).toFixed(0)+' KB':b+' B';
+const dayKey=t=>new Date(t).toDateString();
+const fmtDay=t=>new Date(t).toLocaleDateString(undefined,{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+const fmtTime=t=>new Date(t).toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'});
+const ICON={O:'#',P:'[P]',D:'●',G:'◎'};
+const CLIP='📎';
+// An image whose file isn't on disk: say so instead of showing an empty frame.
+function missingImg(img){
+  const a=document.createElement('span'); a.className='missing';
+  a.innerHTML='<b>'+CLIP+' '+img.dataset.nm+'</b><span>'+img.dataset.sz+
+    ' &middot; not downloaded &mdash; run: ./archive.sh attachments</span>';
+  img.parentNode.replaceWith(a);
+}
+
+/* ---------- markdown-lite ---------- */
+function md(s){
+  var cb=[], ic=[], A='CB', B='IC', Q='BQ';
+  s=s.replace(/```[\w+#-]*\n?([\s\S]*?)```/g,function(m,c){cb.push(c);return A+(cb.length-1)+A;});
+  s=s.replace(/`([^`\n]+)`/g,function(m,c){ic.push(c);return B+(ic.length-1)+B;});
+  s=esc(s);
+  s=s.split('\n').map(function(l){return /^&gt;\s?/.test(l)?Q+l.replace(/^&gt;\s?/,''):l;}).join('\n');
+  s=s.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>');
+  s=s.replace(/(^|[\s(])(https?:\/\/[^\s<>()]+)/g,'$1<a href="$2" target="_blank" rel="noopener">$2</a>');
+  s=s.replace(/\*\*([^*\n]+)\*\*/g,'<b>$1</b>');
+  s=s.replace(/(^|\W)\*([^*\n]+)\*(?=\W|$)/g,'$1<i>$2</i>');
+  s=s.replace(/(^|\W)_([^_\n]+)_(?=\W|$)/g,'$1<i>$2</i>');
+  s=s.replace(/~~([^~\n]+)~~/g,'<s>$1</s>');
+  s=s.replace(/(^|\s)(@[a-z0-9._-]{2,})/gi,'$1<span class="mn">$2</span>');
+  s=s.replace(new RegExp(Q+'(.*)','g'),'<blockquote>$1</blockquote>');
+  s=s.replace(new RegExp(B+'(\\d+)'+B,'g'),function(m,i){return '<code>'+esc(ic[+i])+'</code>';});
+  s=s.replace(new RegExp(A+'(\\d+)'+A,'g'),function(m,i){return '<pre><code>'+esc(cb[+i].replace(/\n$/,''))+'</code></pre>';});
+  return s;
+}
+
+
+/* ---------- sidebar ---------- */
+if (D.server) {
+  try { document.getElementById('brand').textContent = new URL(D.server).hostname; } catch (e) {}
+}
+document.getElementById('sub').textContent =
+  D.channels.length+' channels · '+D.channels.reduce((a,c)=>a+c.n,0).toLocaleString()+' messages';
+let CUR=null;
+function drawChans(filter){
+  const box=document.getElementById('chans'); box.innerHTML='';
+  const f=(filter||'').toLowerCase(); let team=null;
+  D.channels.forEach(c=>{
+    if(f && !(c.disp.toLowerCase().includes(f)||c.name.toLowerCase().includes(f))) return;
+    if(c.team!==team){team=c.team;const h=document.createElement('div');h.className='grp';h.textContent=team;box.appendChild(h)}
+    const d=document.createElement('div'); d.className='ch'+(CUR===c.id?' on':''); d.dataset.id=c.id;
+    d.innerHTML='<span class="ic"></span><span class="nm"></span><span class="ct">'+c.n.toLocaleString()+'</span>';
+    d.querySelector('.ic').textContent=ICON[c.type];
+    d.querySelector('.nm').textContent=c.disp;
+    d.title=c.disp+'  ('+c.n+' messages, '+c.files+' files)';
+    d.onclick=()=>openCh(c.id); box.appendChild(d);
+  });
+}
+document.getElementById('cfilter').oninput=e=>drawChans(e.target.value);
+
+/* ---------- message rendering ---------- */
+function postEl(p,ch,prev){
+  const id=p[0], ts=p[1], uid=p[2], text=p[3], type=p[5], ex=p[6]||{};
+  const pex=(prev&&prev[6])||{};
+  const grouped = prev && prev[2]===uid && !prev[5] && !type && (ts-prev[1])<300000 && pex.w===ex.w;
+  const el=document.createElement('div'); el.className='p'; el.id='p_'+id;
+  const who = ex.w || uname(uid), real=ureal(uid);
+  if(type && type.indexOf('system_')===0){
+    el.innerHTML='<div class="av sp"></div><div class="bd"><div class="msg sys"></div></div>';
+    el.querySelector('.msg').textContent=(text||type.replace(/_/g,' '))+'  · '+fmtTime(ts);
+    return el;
+  }
+  let h='';
+  if(grouped) h+='<div class="av sp"></div><div class="bd">';
+  else{
+    h+='<div class="av" style="background:'+color(uid)+'">'+esc(who.slice(0,2).toUpperCase())+'</div><div class="bd">'+
+       '<div class="hdr"><span class="who">'+esc(who)+'</span>'+
+       (real?'<span class="ts">'+esc(real)+'</span>':'')+
+       '<span class="ts">'+fmtTime(ts)+'</span>'+
+       (ex.w?'<span class="tag">BOT</span>':'')+
+       (ex.e?'<span class="tag">edited</span>':'')+
+       (ex.p?'<span class="tag">pinned</span>':'')+'</div>';
+  }
+  if(text) h+='<div class="msg">'+md(text)+'</div>';
+  (ex.a||[]).forEach(a=>{h+='<div class="sa">'+(a[0]?'<div class="t">'+esc(a[0])+'</div>':'')+
+      '<div class="msg">'+md(a[2]?a[2]+'\n'+a[1]:a[1])+'</div></div>';});
+  if(ex.f&&ex.f.length){
+    h+='<div class="att">';
+    ex.f.forEach(f=>{
+      const url=ch.dir+'/files/'+encodeURIComponent(f[0]);
+      const nm=esc(f[1]||f[0]), sz=fmtSize(f[2]);
+      if(f[3]) h+='<a href="'+url+'" target="_blank" class="imgwrap"><img loading="lazy" src="'+url+
+                  '" alt="'+nm+'" data-nm="'+nm+'" data-sz="'+sz+'" onerror="missingImg(this)"></a>';
+      else h+='<a class="file" href="'+url+'" target="_blank">'+CLIP+' <span>'+nm+
+              '</span><span class="sz">'+sz+'</span></a>';
+    });
+    h+='</div>';
+  }
+  (ex.m||[]).forEach(e=>{
+    if(e[0]==='o'){
+      h+='<a class="og" href="'+esc(e[1])+'" target="_blank" rel="noopener">'+
+         (e[4]?'<div class="site">'+esc(e[4])+'</div>':'')+
+         (e[2]?'<div class="t">'+esc(e[2])+'</div>':'')+
+         (e[3]?'<div class="d">'+esc(e[3])+'</div>':'')+
+         (e[5]?'<img class="ogimg" loading="lazy" src="'+esc(e[5])+'" onerror="this.remove()">':'')+
+         '</a>';
+    } else if(e[0]==='p'){
+      h+='<div class="pl"><div class="site">'+esc(uname(e[1]))+
+         (e[3]?' · '+new Date(e[3]).toLocaleDateString():'')+'</div>'+
+         '<div class="msg">'+md(e[2])+'</div></div>';
+    } else if(e[0]==='i'){
+      h+='<div class="att"><img loading="lazy" src="'+esc(e[1])+'" onerror="this.remove()"></div>';
+    }
+  });
+  if(ex.r) h+='<div class="rx">'+ex.r.map(r=>'<span>:'+esc(r[0])+': '+r[1]+'</span>').join('')+'</div>';
+  h+='</div>';
+  el.innerHTML=h;
+  return el;
+}
+
+const PAGE=400;
+function openCh(id,jumpTo){
+  CUR=id; drawChans(document.getElementById('cfilter').value);
+  const ch=D.channels.find(c=>c.id===id), all=D.posts[id];
+  document.getElementById('title').textContent=ch.disp;
+  document.getElementById('cmeta').textContent=
+    ch.n.toLocaleString()+' messages · '+ch.files+' files · '+
+    new Date(ch.first).toLocaleDateString()+' – '+new Date(ch.last).toLocaleDateString();
+
+  const byRoot={}, roots=[], have=new Set();
+  all.forEach(p=>have.add(p[0]));
+  all.forEach(p=>{ if(p[4]&&have.has(p[4])) (byRoot[p[4]]=byRoot[p[4]]||[]).push(p); else roots.push(p); });
+  roots.sort((a,b)=>a[1]-b[1]);
+
+  const feed=document.getElementById('feed'); feed.innerHTML='';
+  const start = jumpTo ? 0 : Math.max(0, roots.length-PAGE);
+
+  function paint(from){
+    const frag=document.createDocumentFragment(); let day=null, prev=null;
+    for(let i=from;i<roots.length;i++){
+      const p=roots[i], k=dayKey(p[1]);
+      if(k!==day){day=k;const d=document.createElement('div');d.className='day';d.textContent=fmtDay(p[1]);frag.appendChild(d);prev=null;}
+      frag.appendChild(postEl(p,ch,prev)); prev=p;
+      const kids=byRoot[p[0]];
+      if(kids&&kids.length){
+        kids.sort((a,b)=>a[1]-b[1]);
+        const t=document.createElement('div'); t.className='thr'; let pv=null;
+        kids.forEach(c=>{t.appendChild(postEl(c,ch,pv));pv=c;});
+        frag.appendChild(t); prev=null;
+      }
+    }
+    feed.appendChild(frag);
+  }
+  if(start>0){
+    const b=document.createElement('button'); b.className='more';
+    b.textContent='↑ Load '+start.toLocaleString()+' earlier messages';
+    b.onclick=()=>{const y=feed.scrollHeight;feed.innerHTML='';paint(0);feed.scrollTop=feed.scrollHeight-y;};
+    feed.appendChild(b);
+  }
+  paint(start);
+  if(jumpTo){
+    const t=document.getElementById('p_'+jumpTo);
+    if(t){t.scrollIntoView({block:'center'});t.classList.add('hit');}
+  } else feed.scrollTop=feed.scrollHeight;
+}
+
+/* ---------- search ---------- */
+const q=document.getElementById('q');
+let timer;
+q.oninput=()=>{clearTimeout(timer);timer=setTimeout(search,180);};
+function search(){
+  const s=q.value.trim().toLowerCase();
+  const feed=document.getElementById('feed');
+  if(s.length<2){ if(CUR)openCh(CUR); else feed.innerHTML='<div id="empty">Pick a channel on the left, or search.</div>'; return; }
+  const out=[]; let capped=false;
+  for(const ch of D.channels){
+    for(const p of D.posts[ch.id]){
+      if(p[3] && p[3].toLowerCase().indexOf(s)>=0){ out.push([ch,p]); if(out.length>800){capped=true;break;} }
+    }
+    if(capped) break;
+  }
+  out.sort((a,b)=>b[1][1]-a[1][1]);
+  document.getElementById('title').textContent='Search';
+  document.getElementById('cmeta').textContent=out.length+(capped?'+':'')+' results for "'+q.value.trim()+'"';
+  feed.innerHTML='';
+  if(!out.length){feed.innerHTML='<div id="empty">No matches.</div>';return;}
+  const frag=document.createDocumentFragment();
+  out.slice(0,800).forEach(pair=>{
+    const ch=pair[0], p=pair[1];
+    const d=document.createElement('div'); d.className='res';
+    const i=p[3].toLowerCase().indexOf(s), a=Math.max(0,i-90);
+    const pre=(a>0?'…':'')+p[3].slice(a,i), mid=p[3].slice(i,i+s.length), post=p[3].slice(i+s.length,i+s.length+150);
+    d.innerHTML='<div class="rc">'+esc(ICON[ch.type]+' '+ch.disp+' · '+uname(p[2])+' · '+
+                new Date(p[1]).toLocaleString())+'</div><div class="msg">'+
+                esc(pre)+'<mark>'+esc(mid)+'</mark>'+esc(post)+'</div>';
+    d.onclick=()=>{q.value='';openCh(ch.id,p[0]);};
+    frag.appendChild(d);
+  });
+  feed.appendChild(frag);
+}
+document.onkeydown=e=>{
+  if(e.key==='/'&&document.activeElement.tagName!=='INPUT'){e.preventDefault();q.focus();}
+  if(e.key==='Escape'){document.getElementById('lb').style.display='none';}
+};
+document.getElementById('feed').addEventListener('click',e=>{
+  if(e.target.tagName==='IMG'&&e.target.closest('.att')){
+    const lb=document.getElementById('lb'); lb.querySelector('img').src=e.target.src; lb.style.display='flex';
+  }
+});
+document.getElementById('lb').onclick=()=>document.getElementById('lb').style.display='none';
+document.getElementById('tt').onclick=()=>{
+  const h=document.documentElement; h.dataset.t = h.dataset.t==='dark' ? '' : 'dark';
+};
+drawChans('');
+</script></body></html>
