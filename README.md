@@ -1,4 +1,6 @@
-# mattermost-archiver
+# mm-takeout
+
+Get your Mattermost data out, and actually read it.
 
 Export everything you can see in Mattermost — channels, DMs, threads, reactions,
 attachments — and turn it into something you can actually read: a self-contained
@@ -31,8 +33,8 @@ Everything runs locally. Nothing is uploaded anywhere.
 ## Quickstart
 
 ```bash
-git clone https://github.com/YOURNAME/mattermost-archiver
-cd mattermost-archiver
+git clone https://github.com/niMgnoeSeeL/mm-takeout
+cd mm-takeout
 ./archive.sh
 ```
 
@@ -240,4 +242,6 @@ grep -h "deadline" export/channels/*/posts.jsonl \
 
 MIT — see [LICENSE](LICENSE).
 
-Not affiliated with or endorsed by Mattermost, Inc.
+An independent project. Not affiliated with, sponsored by, or endorsed by
+Mattermost, Inc. "Mattermost" is a trademark of Mattermost, Inc. and is used
+here only to describe what this tool interoperates with.
